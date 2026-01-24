@@ -7,7 +7,7 @@
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
       <Resource Name="HoleFoods.PKG"/>
-      <UnitTest Name="/tests" Package="HoleFoods.api" Phase="test"/>
+      <UnitTest Name="/tests" Package="HoleFoods.api.tests" Phase="test"/>
       <CSPApplication
         Url="/holefoods/api"
         DispatchClass="HoleFoods.api.disp"

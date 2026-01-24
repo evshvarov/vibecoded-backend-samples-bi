@@ -13,6 +13,7 @@
     zpm "install passwordless"
     ; importing the source code of the repository as ZPM module
     zn "USER"
-    zpm "load /home/irisowner/dev -v":1:1
     zpm "install swagger-ui"
+    zpm "load /home/irisowner/dev -v":1:1
+    
     halt

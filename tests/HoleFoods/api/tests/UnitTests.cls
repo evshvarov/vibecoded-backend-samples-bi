@@ -1,4 +1,4 @@
-Class HoleFoods.api.UnitTests Extends %UnitTest.TestCase
+Class HoleFoods.api.tests.UnitTests Extends %UnitTest.TestCase
 {
 
 Method InitRequestResponse() [ Private ]
