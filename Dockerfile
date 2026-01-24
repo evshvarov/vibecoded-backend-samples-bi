@@ -5,7 +5,7 @@ FROM $IMAGE
 WORKDIR /home/irisowner/dev
 
 ARG TESTS=0
-ARG MODULE="objectscript-template"
+ARG MODULE="esh-vibe-back-demo"
 ARG NAMESPACE="USER"
 
 ## Embedded Python environment
@@ -22,3 +22,7 @@ RUN --mount=type=bind,src=.,dst=. \
 	iris session IRIS < iris.script && \
     ([ $TESTS -eq 0 ] || iris session iris -U $NAMESPACE "##class(%ZPM.PackageManager).Shell(\"test $MODULE -v -only\",1,1)") && \
     iris stop IRIS quietly
+
+RUN old=http://localhost:52773/crud/_spec && \
+	new=http://localhost:57336/holefoods/api/_spec && \
+	sed -i "s|$old|$new|g" /usr/irissys/csp/swagger-ui/swagger-initializer.js
