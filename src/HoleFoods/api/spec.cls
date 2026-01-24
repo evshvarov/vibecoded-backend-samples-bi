@@ -38,6 +38,60 @@ XData OpenAPI [ MimeType = application/json ]
         }
       }
     },
+    "/outlets": {
+      "get": {
+        "summary": "List sales outlets",
+        "operationId": "ListOutlets",
+        "responses": {
+          "200": {
+            "description": "Outlets",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Outlet"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sales": {
+      "get": {
+        "summary": "Get sales summary",
+        "operationId": "GetSalesSummary",
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date"
+          },
+          {
+            "name": "outletId",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales summary",
+            "schema": {
+              "$ref": "#/definitions/SalesSummary"
+            }
+          }
+        }
+      }
+    },
     "/products": {
       "get": {
         "tags": [
@@ -170,6 +224,70 @@ XData OpenAPI [ MimeType = application/json ]
     }
   },
   "definitions": {
+    "Outlet": {
+      "type": "object",
+      "properties": {
+        "OutletId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "City": {
+          "type": "string"
+        },
+        "Country": {
+          "type": "string"
+        },
+        "Type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "OutletId",
+        "City"
+      ]
+    },
+    "SalesItem": {
+      "type": "object",
+      "properties": {
+        "SKU": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "TotalSales": {
+          "type": "number",
+          "format": "float"
+        },
+        "UnitsSold": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "required": [
+        "SKU",
+        "TotalSales"
+      ]
+    },
+    "SalesSummary": {
+      "type": "object",
+      "properties": {
+        "TotalSales": {
+          "type": "number",
+          "format": "float"
+        },
+        "UnitsSold": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "Items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SalesItem"
+          }
+        }
+      }
+    },
     "Product": {
       "type": "object",
       "properties": {

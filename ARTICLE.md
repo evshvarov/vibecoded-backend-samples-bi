@@ -35,4 +35,15 @@ And you can test it out - here is what I'm getting for /holefoods/api/products G
 After testing the UI we can build and connect the frontend to the api. We can ask codex to do it or go to loveble and ask it to build the UI vs the spec. 
 Great!
 
+Here is what I've got locally:
+Image
+
+After testing the UI and maybe fixing some potential issues (in my case deletion didn't work) let's introduce another important element - unittests for the API.
+I've just asked Codex to introduce a unittest class HoleFoods.api.Unittests.cls that will cover all the endpoints in spec. And it did.
+I've also introduced it into the module so it gets convenient to run the tests as:
+zpm "test esh-vibe-back-demo"
+
+and see results in a unit-test portal:
+
+
 

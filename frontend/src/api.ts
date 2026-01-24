@@ -1,6 +1,6 @@
-import type { Product } from "./types";
+import type { Outlet, Product, SalesSummary } from "./types";
 
-const BASE_URL = "/holefoods/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/holefoods/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -52,4 +52,23 @@ export function deleteProduct(sku: string): Promise<void> {
 
 export function getSpec(): Promise<Record<string, unknown>> {
   return request<Record<string, unknown>>("/_spec");
+}
+
+export function listOutlets(): Promise<Outlet[]> {
+  return request<Outlet[]>("/outlets");
+}
+
+type SalesSummaryParams = {
+  startDate?: string;
+  endDate?: string;
+  outletId?: number;
+};
+
+export function getSalesSummary(params: SalesSummaryParams): Promise<SalesSummary> {
+  const query = new URLSearchParams();
+  if (params.startDate) query.set("startDate", params.startDate);
+  if (params.endDate) query.set("endDate", params.endDate);
+  if (params.outletId) query.set("outletId", params.outletId.toString());
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return request<SalesSummary>(`/sales${suffix}`);
 }

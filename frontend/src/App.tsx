@@ -3,10 +3,12 @@ import {
   createProduct,
   deleteProduct,
   getSpec,
+  getSalesSummary,
   listProducts,
+  listOutlets,
   updateProduct,
 } from "./api";
-import type { Product } from "./types";
+import type { Outlet, Product, SalesSummary } from "./types";
 
 type FormState = {
   SKU: string;
@@ -23,6 +25,7 @@ const emptyForm: FormState = {
 };
 
 export default function App() {
+  const [view, setView] = useState<"products" | "sales">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +35,14 @@ export default function App() {
   const [editingSku, setEditingSku] = useState<string | null>(null);
   const [specOpen, setSpecOpen] = useState(false);
   const [specJson, setSpecJson] = useState<string>("");
+  const [outlets, setOutlets] = useState<Outlet[]>([]);
+  const [sales, setSales] = useState<SalesSummary | null>(null);
+  const [salesLoading, setSalesLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    startDate: "",
+    endDate: "",
+    outletId: "",
+  });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -49,6 +60,14 @@ export default function App() {
     void reloadProducts();
   }, []);
 
+  useEffect(() => {
+    if (view !== "sales") return;
+    if (outlets.length === 0) {
+      void loadOutlets();
+    }
+    void loadSales();
+  }, [view]);
+
   async function reloadProducts() {
     setLoading(true);
     setError(null);
@@ -59,6 +78,32 @@ export default function App() {
       setError(err instanceof Error ? err.message : "Unable to load products.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadOutlets() {
+    try {
+      const data = await listOutlets();
+      setOutlets(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load outlets.");
+    }
+  }
+
+  async function loadSales() {
+    setSalesLoading(true);
+    setError(null);
+    try {
+      const summary = await getSalesSummary({
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+        outletId: filters.outletId ? Number(filters.outletId) : undefined,
+      });
+      setSales(summary);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load sales.");
+    } finally {
+      setSalesLoading(false);
     }
   }
 
@@ -155,149 +200,279 @@ export default function App() {
     }
   }
 
+  const heroStats =
+    view === "sales"
+      ? [
+          { label: "Total Sales", value: sales?.TotalSales ?? 0 },
+          { label: "Units Sold", value: sales?.UnitsSold ?? 0 },
+          { label: "Filtered SKU Count", value: sales?.Items?.length ?? 0 },
+        ]
+      : [
+          { label: "Inventory Items", value: products.length },
+          { label: "Status", value: loading ? "Syncing" : "Live" },
+          { label: "Endpoint", value: "/holefoods/api" },
+        ];
+
   return (
     <div className="app">
       <header className="hero">
         <div>
           <p className="eyebrow">HoleFoods API Console</p>
-          <h1>Product control with live Swagger wiring.</h1>
+          <h1>
+            {view === "sales"
+              ? "Sales intelligence in one focused dashboard."
+              : "Product control with live Swagger wiring."}
+          </h1>
           <p className="subhead">
-            Manage catalog items, validate new SKUs, and export the API spec in
-            one focused workspace.
+            {view === "sales"
+              ? "Filter by outlet and date to track revenue by SKU."
+              : "Manage catalog items, validate new SKUs, and export the API spec in one focused workspace."}
           </p>
+          <div className="tabs">
+            <button
+              className={view === "products" ? "tab active" : "tab"}
+              onClick={() => setView("products")}
+            >
+              Products
+            </button>
+            <button
+              className={view === "sales" ? "tab active" : "tab"}
+              onClick={() => setView("sales")}
+            >
+              Sales
+            </button>
+          </div>
           <div className="hero-actions">
             <button className="primary" onClick={handleLoadSpec}>
               View Spec
             </button>
-            <button className="ghost" onClick={reloadProducts}>
-              Refresh Products
-            </button>
+            {view === "products" ? (
+              <button className="ghost" onClick={reloadProducts}>
+                Refresh Products
+              </button>
+            ) : (
+              <button className="ghost" onClick={loadSales}>
+                Refresh Sales
+              </button>
+            )}
           </div>
         </div>
         <div className="hero-card">
-          <div className="stat">
-            <span>Inventory Items</span>
-            <strong>{products.length}</strong>
-          </div>
-          <div className="stat">
-            <span>Status</span>
-            <strong>{loading ? "Syncing" : "Live"}</strong>
-          </div>
-          <div className="stat">
-            <span>Endpoint</span>
-            <strong>/holefoods/api</strong>
-          </div>
+          {heroStats.map((stat) => (
+            <div className="stat" key={stat.label}>
+              <span>{stat.label}</span>
+              <strong>
+                {typeof stat.value === "number"
+                  ? stat.label.includes("Sales")
+                    ? `$${stat.value.toFixed(2)}`
+                    : stat.value
+                  : stat.value}
+              </strong>
+            </div>
+          ))}
         </div>
       </header>
 
-      <main className="grid">
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <h2>Create Product</h2>
-              <p>Send a POST to /products with a curated payload.</p>
+      {view === "products" ? (
+        <main className="grid">
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Create Product</h2>
+                <p>Send a POST to /products with a curated payload.</p>
+              </div>
             </div>
-          </div>
-          <form className="form" onSubmit={handleCreate}>
-            <label>
-              SKU
-              <input
-                value={createForm.SKU}
-                onChange={(event) =>
-                  setCreateForm({ ...createForm, SKU: event.target.value })
-                }
-                placeholder="SKU-101"
-              />
-            </label>
-            <label>
-              Name
-              <input
-                value={createForm.Name}
-                onChange={(event) =>
-                  setCreateForm({ ...createForm, Name: event.target.value })
-                }
-                placeholder="Bagels (dozen)"
-              />
-            </label>
-            <label>
-              Category
-              <input
-                value={createForm.Category}
-                onChange={(event) =>
-                  setCreateForm({ ...createForm, Category: event.target.value })
-                }
-                placeholder="Snack"
-              />
-            </label>
-            <label>
-              Price
-              <input
-                value={createForm.Price}
-                onChange={(event) =>
-                  setCreateForm({ ...createForm, Price: event.target.value })
-                }
-                placeholder="2.95"
-              />
-            </label>
-            <button className="primary" type="submit">
-              Create Product
-            </button>
-          </form>
-        </section>
+            <form className="form" onSubmit={handleCreate}>
+              <label>
+                SKU
+                <input
+                  value={createForm.SKU}
+                  onChange={(event) =>
+                    setCreateForm({ ...createForm, SKU: event.target.value })
+                  }
+                  placeholder="SKU-101"
+                />
+              </label>
+              <label>
+                Name
+                <input
+                  value={createForm.Name}
+                  onChange={(event) =>
+                    setCreateForm({ ...createForm, Name: event.target.value })
+                  }
+                  placeholder="Bagels (dozen)"
+                />
+              </label>
+              <label>
+                Category
+                <input
+                  value={createForm.Category}
+                  onChange={(event) =>
+                    setCreateForm({
+                      ...createForm,
+                      Category: event.target.value,
+                    })
+                  }
+                  placeholder="Snack"
+                />
+              </label>
+              <label>
+                Price
+                <input
+                  value={createForm.Price}
+                  onChange={(event) =>
+                    setCreateForm({ ...createForm, Price: event.target.value })
+                  }
+                  placeholder="2.95"
+                />
+              </label>
+              <button className="primary" type="submit">
+                Create Product
+              </button>
+            </form>
+          </section>
 
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <h2>Catalog</h2>
-              <p>Search and edit live inventory in place.</p>
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Catalog</h2>
+                <p>Search and edit live inventory in place.</p>
+              </div>
+              <input
+                className="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search SKU, name, category"
+              />
             </div>
-            <input
-              className="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search SKU, name, category"
-            />
-          </div>
 
-          {loading ? (
-            <div className="empty">Loading products...</div>
-          ) : filtered.length === 0 ? (
-            <div className="empty">No products match this query.</div>
-          ) : (
-            <div className="cards">
-              {filtered.map((product) => (
-                <article className="card" key={product.SKU}>
-                  <div className="card-top">
-                    <div>
-                      <p className="sku">{product.SKU}</p>
-                      <h3>{product.Name}</h3>
-                      <p className="meta">
-                        {product.Category || "Uncategorized"}
-                      </p>
+            {loading ? (
+              <div className="empty">Loading products...</div>
+            ) : filtered.length === 0 ? (
+              <div className="empty">No products match this query.</div>
+            ) : (
+              <div className="cards">
+                {filtered.map((product) => (
+                  <article className="card" key={product.SKU}>
+                    <div className="card-top">
+                      <div>
+                        <p className="sku">{product.SKU}</p>
+                        <h3>{product.Name}</h3>
+                        <p className="meta">
+                          {product.Category || "Uncategorized"}
+                        </p>
+                      </div>
+                      <span className="price">
+                        {product.Price !== undefined
+                          ? `$${product.Price.toFixed(2)}`
+                          : "--"}
+                      </span>
                     </div>
-                    <span className="price">
-                      {product.Price !== undefined
-                        ? `$${product.Price.toFixed(2)}`
-                        : "--"}
-                    </span>
-                  </div>
-                  <div className="card-actions">
-                    <button className="ghost" onClick={() => startEdit(product)}>
-                      Edit
-                    </button>
-                    <button
-                      className="danger"
-                      onClick={() => handleDelete(product.SKU)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </article>
-              ))}
+                    <div className="card-actions">
+                      <button
+                        className="ghost"
+                        onClick={() => startEdit(product)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="danger"
+                        onClick={() => handleDelete(product.SKU)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </main>
+      ) : (
+        <main className="sales-grid">
+          <section className="panel filters">
+            <div className="panel-header">
+              <div>
+                <h2>Sales Filters</h2>
+                <p>Apply a date range and outlet to refine the totals.</p>
+              </div>
             </div>
-          )}
-        </section>
-      </main>
+            <div className="filters-grid">
+              <label>
+                Start Date
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(event) =>
+                    setFilters({ ...filters, startDate: event.target.value })
+                  }
+                />
+              </label>
+              <label>
+                End Date
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(event) =>
+                    setFilters({ ...filters, endDate: event.target.value })
+                  }
+                />
+              </label>
+              <label>
+                Outlet
+                <select
+                  value={filters.outletId}
+                  onChange={(event) =>
+                    setFilters({ ...filters, outletId: event.target.value })
+                  }
+                >
+                  <option value="">All outlets</option>
+                  {outlets.map((outlet) => (
+                    <option key={outlet.OutletId} value={outlet.OutletId}>
+                      {outlet.City}
+                      {outlet.Country ? `, ${outlet.Country}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button className="primary" onClick={loadSales}>
+                Apply Filters
+              </button>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Sales by SKU</h2>
+                <p>Ranked by total sales, including units sold.</p>
+              </div>
+            </div>
+            {salesLoading ? (
+              <div className="empty">Loading sales summary...</div>
+            ) : sales && sales.Items.length > 0 ? (
+              <div className="table">
+                <div className="table-head">
+                  <span>SKU</span>
+                  <span>Product</span>
+                  <span>Units</span>
+                  <span>Total Sales</span>
+                </div>
+                {sales.Items.map((item) => (
+                  <div className="table-row" key={item.SKU}>
+                    <span className="sku">{item.SKU}</span>
+                    <span>{item.Name || "Unnamed"}</span>
+                    <span>{item.UnitsSold ?? 0}</span>
+                    <span>${item.TotalSales.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty">No sales data for this selection.</div>
+            )}
+          </section>
+        </main>
+      )}
 
       <section className={`drawer ${editingSku ? "open" : ""}`}>
         <div className="drawer-content">
