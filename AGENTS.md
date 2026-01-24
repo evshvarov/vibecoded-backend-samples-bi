@@ -197,3 +197,55 @@ ClassMethod AddCORS(appname) As %Status
 
 }
 
+
+
+Here is how you can build query implementations for openapi requests. E.g. here is the impl method to return sales:
+
+ClassMethod ListCompanySales(companyId As %String, dateFrom As %String, dateTo As %String, limit As %Integer = 100, offset As %Integer = 0) As %DynamicObject
+{
+    set user=..GetAuthorizedUser() if user="" {return ""}
+    if companyId = "" {
+        d ..%SetStatusCode(400)
+        d ..%SetHeader("X-Error", "companyId required")
+        return {}
+    }
+
+    set rset = ##class(esh.lcrm.companycabinet).OrdersByCompanyFunc(companyId, dateFrom, dateTo, limit, offset)
+    if rset.%SQLCODE<0 {
+        d ..%SetStatusCode(500)
+        d ..%SetHeader("X-Error", rset.%Message)
+        return "" 
+    }
+
+    set dynArray = [].%New()
+    While rset.%Next() {
+        //s ^AAA="ID: "_rset.ID1
+        do ##class(gc.orders).%OpenId(rset.ID1).%JSONExportToString(.json)
+        set dynObj = {}.%FromJSON(json)
+        do dynArray.%Push(dynObj)
+    }
+
+    set result = {}.%New()
+    do result.%Set("items", dynArray)
+    do result.%Set("count", dynArray.%Size())
+    do result.%Set("limit", +limit)
+    do result.%Set("offset", +offset)
+    return result
+}
+
+Inside it calls OrdersByCompany with Func addition SQL class query, here is how it looks like:
+
+Query OrdersByCompany(companyId As %String, dateFrom As %String = "", dateTo As %String = "", limit As %Integer = 100, offset As %Integer = 0) As %SQLQuery [ SqlProc ]
+{
+    SELECT  o.ID1 as ID1 
+    FROM    gc.orders o 
+    JOIN    esh_lcrm.companycabinet cc
+            ON cc.CabinetId = o.take_cabinet_id
+           AND cc.Company = :companyId
+           AND (cc.StartDate IS NULL OR o.created_at >= cc.StartDate)
+           AND (cc.EndDate IS NULL OR o.created_at <= cc.EndDate)
+    WHERE   (:dateFrom = '' OR o.created_at >= dateFrom)
+      AND   (:dateTo = '' OR o.created_at < :dateTo)
+    ORDER BY o.created_at DESC
+    LIMIT :limit OFFSET :offset
+}

@@ -59,6 +59,37 @@ Property Latitude As %Double;
 /// Longitude of customer (determined from zip code).
 Property Longitude As %Double;
 
+/// Total sales and units sold with optional filters.
+Query SalesSummary(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0) As %SQLQuery
+{
+SELECT
+    SUM(t.AmountOfSale) AS TotalSales,
+    SUM(t.UnitsSold) AS UnitsSold
+FROM HoleFoods.Transaction t
+WHERE t.Actual = 1
+  AND (:startDate = '' OR t.DateOfSale >= :startDate)
+  AND (:endDate = '' OR t.DateOfSale <= :endDate)
+  AND (:outletId = 0 OR t.Outlet = :outletId)
+}
+
+/// Sales totals by SKU with optional filters.
+Query SalesBySku(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0) As %SQLQuery
+{
+SELECT
+    p.SKU AS SKU,
+    p.Name AS Name,
+    SUM(t.AmountOfSale) AS TotalSales,
+    SUM(t.UnitsSold) AS UnitsSold
+FROM HoleFoods.Transaction t
+JOIN HoleFoods.Product p ON t.Product = p.%Id
+WHERE t.Actual = 1
+  AND (:startDate = '' OR t.DateOfSale >= :startDate)
+  AND (:endDate = '' OR t.DateOfSale <= :endDate)
+  AND (:outletId = 0 OR t.Outlet = :outletId)
+GROUP BY p.SKU, p.Name
+ORDER BY TotalSales DESC
+}
+
 Storage Default
 {
 <Data name="TransactionDefaultData">

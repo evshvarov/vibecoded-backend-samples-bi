@@ -112,7 +112,7 @@ Method TestGetSalesSummary()
     Set transaction.Actual = 1
     Set transaction.DateOfSale = tDate
     Set transaction.Product = sku
-    Set transaction.Outlet = outlet.%Id()
+    Set transaction.Outlet = outlet
     Set transaction.AmountOfSale = 25.75
     Set transaction.UnitsSold = 3
     Set sc = transaction.%Save()
