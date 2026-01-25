@@ -9,7 +9,7 @@ on:
 
 jobs:
   deploy:
-    uses: intersystems-community/cloud-deployment/.github/workflows/deployment.yml@optional-env-vars
+    uses: intersystems-community/cloud-deployment/.github/workflows/deployment.yml@main
     with:
       name: holefoods-iris
       ## Optional
