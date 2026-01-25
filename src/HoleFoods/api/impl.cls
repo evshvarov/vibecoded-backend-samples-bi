@@ -49,14 +49,15 @@ ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "",
     If '$Data(endDate) Set endDate = ""
     If '$Data(outletId) Set outletId = ""
     If '$Data(productSku) Set productSku = ""
-    Set startH = ""
-    Set endH = ""
-    Set outletNum = ""
+    Set startH = 0
+    Set endH = $H
+    Set outletNum = 0
 
     If startDate '= "" {
         Set startH = $ZDATEH(startDate, 3)
         If startH < 0 {
             Do ..%SetStatusCode(400)
+            Do ..%SetHeader("X-Error", "Invalid startDate format")
             Quit {}
         }
     }
@@ -65,6 +66,7 @@ ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "",
         Set endH = $ZDATEH(endDate, 3)
         If endH < 0 {
             Do ..%SetStatusCode(400)
+            Do ..%SetHeader("X-Error", "Invalid endDate format")
             Quit {}
         }
     }
@@ -73,6 +75,7 @@ ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "",
         Set outletNum = +outletId
         If outletNum <= 0 {
             Do ..%SetStatusCode(400)
+            Do ..%SetHeader("X-Error", "Invalid outletId format")
             Quit {}
         }
     }
@@ -80,16 +83,20 @@ ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "",
     s ^AAA="after outletId check in ListTransactions"
 
     Set result = []
-    Set stmt = ##class(%SQL.Statement).%New()
-    Set sc = stmt.%PrepareClassQuery("HoleFoods.Transaction", "TransactionsList")
-    If $$$ISERR(sc) {
-        Do ..%SetStatusCode(500)
-        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
-        Quit result
+   //set outletNum=+outletNum
+    s ^AAA("startH")=startH
+    s ^AAA("endH")=endH
+    s ^AAA("outletNum")=outletNum
+    s ^AAA("productSku")=productSku
+    
+    set rset = ##class(HoleFoods.Transaction).TransactionsListFunc(startH, endH, outletNum, productSku)
+    if rset.%SQLCODE<0 {
+        d ..%SetStatusCode(500)
+        d ..%SetHeader("X-Error", rset.%Message)
+        return "" 
     }
-    S ^AAA="after prepare in ListTransactions"
-
-    Set rset = stmt.%Execute(startH, endH, outletNum, productSku)
+    s ^AAA="after TransactionsListFunc call in ListTransactions"
+    
     While rset.%Next() {
         Set item = {}
         Set item.TransactionId = rset.%Get("TransactionId")
@@ -142,15 +149,12 @@ ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", 
         }
     }
     Set summary = {}
-    Set totalStmt = ##class(%SQL.Statement).%New()
-    Set sc = totalStmt.%PrepareClassQuery("HoleFoods.Transaction", "SalesSummary")
-    If $$$ISERR(sc) {
-        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
+    Set totalRset = ##class(HoleFoods.Transaction).SalesSummaryFunc(startH, endH, outletNum)
+    If totalRset.%SQLCODE < 0 {
+        d ..%SetHeader("X-Error", totalRset.%Message)
         Do ..%SetStatusCode(500)
         Quit {}
     }
-
-    Set totalRset = totalStmt.%Execute(startH, endH, outletNum)
     If totalRset.%Next() {
         Set summary.TotalSales = +totalRset.%Get("TotalSales")
         Set summary.UnitsSold = +totalRset.%Get("UnitsSold")
@@ -160,15 +164,12 @@ ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", 
     }
 
     Set summary.Items = []
-    Set stmt = ##class(%SQL.Statement).%New()
-    Set sc = stmt.%PrepareClassQuery("HoleFoods.Transaction", "SalesBySku")
-    If $$$ISERR(sc) {
-        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
+    Set rset = ##class(HoleFoods.Transaction).SalesBySkuFunc(startH, endH, outletNum)
+    If rset.%SQLCODE < 0 {
+        d ..%SetHeader("X-Error", rset.%Message)
         Do ..%SetStatusCode(500)
         Quit {}
     }
-
-    Set rset = stmt.%Execute(startH, endH, outletNum)
     While rset.%Next() {
         Set item = {}
         Set item.SKU = rset.%Get("SKU")

@@ -91,7 +91,7 @@ ORDER BY TotalSales DESC
 }
 
 /// List transactions with optional filters.
-Query TransactionsList(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0, productSku As %String = "") As %SQLQuery [ SqlProc ]
+Query TransactionsList(startDate As %Date, endDate As %Date, outletId As %Integer = 0, productSku As %String = "") As %SQLQuery [ SqlProc ]
 {
 SELECT
     t.%Id AS TransactionId,
@@ -107,8 +107,8 @@ SELECT
 FROM HoleFoods.SalesTransaction t
 JOIN HoleFoods.Product p ON t.Product = p.%Id
 LEFT JOIN HoleFoods.Outlet o ON t.Outlet = o.%Id
-WHERE (:startDate = '' OR t.DateOfSale >= :startDate)
-  AND (:endDate = '' OR t.DateOfSale <= :endDate)
+WHERE (:startDate = '' OR CAST(t.DateOfSale AS timestamp) >= :startDate)
+  AND (:endDate = '' OR CAST(t.DateOfSale AS timestamp) <= :endDate)
   AND (:outletId = 0 OR t.Outlet = :outletId)
   AND (:productSku = '' OR p.SKU = :productSku)
 ORDER BY t.DateOfSale DESC

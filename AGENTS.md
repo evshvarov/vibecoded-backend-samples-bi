@@ -267,3 +267,5 @@ If $$$ISERR(sc) {
         d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Quit result
     }
+
+if the type is %Date use 0 for start date and $H for End date instead of "" default values

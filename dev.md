@@ -111,3 +111,11 @@ python -m vevn .venv
 AND (:startDate = '' OR t.DateOfSale >= :startDate)
 AND (:endDate = '' OR t.DateOfSale <= :endDate)
   
+
+(:startDate = '' OR t.DateOfSale >= :startDate)
+  AND (:endDate = '' OR t.DateOfSale <= :endDate)
+
+
+WHERE TO_DATE(DateSubmitted, 'MM/DD/YYYY') BETWEEN TO_DATE('07/01/2016','MM/DD/YYYY') AND TO_DATE('07/31/2016','MM/DD/YYYY')
+
+
