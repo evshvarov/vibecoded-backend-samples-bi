@@ -111,13 +111,13 @@ Method TestGetSalesSummary()
     Set transaction = ##class(HoleFoods.Transaction).%New()
     Set transaction.Actual = 1
     Set transaction.DateOfSale = tDate
-    Set transaction.Product = sku
+    Set transaction.Product = ##class(HoleFoods.Product).%OpenId(sku)
     Set transaction.Outlet = outlet
     Set transaction.AmountOfSale = 25.75
     Set transaction.UnitsSold = 3
     Set sc = transaction.%Save()
     Do $$$AssertStatusOK(sc, "Transaction save failed")
-
+    //b "L"
     Set summary = ##class(HoleFoods.api.impl).GetSalesSummary("", "", outlet.%Id())
     Do $$$AssertTrue($IsObject(summary), "Summary should be a JSON object")
     Do $$$AssertEquals(summary.UnitsSold, 3, "Units sold mismatch")

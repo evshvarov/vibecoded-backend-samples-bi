@@ -46,7 +46,7 @@ ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", 
     Set startH = ""
     Set endH = ""
     Set outletNum = ""
-
+    b "L"
     If startDate '= "" {
         Set startH = $ZDATEH(startDate, 3)
         If startH < 0 {
@@ -70,7 +70,7 @@ ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", 
             Quit {}
         }
     }
-
+    //b "L"
     Set summary = {}
     Set totalStmt = ##class(%SQL.Statement).%New()
     Set sc = totalStmt.%PrepareClassQuery("HoleFoods.Transaction", "SalesSummary")

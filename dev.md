@@ -105,3 +105,9 @@ USER ${ISC_PACKAGE_MGRUSER}
 
 ## Python virtual environment
 python -m vevn .venv
+
+
+
+AND (:startDate = '' OR t.DateOfSale >= :startDate)
+AND (:endDate = '' OR t.DateOfSale <= :endDate)
+  

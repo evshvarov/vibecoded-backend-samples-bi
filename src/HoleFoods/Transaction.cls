@@ -60,31 +60,27 @@ Property Latitude As %Double;
 Property Longitude As %Double;
 
 /// Total sales and units sold with optional filters.
-Query SalesSummary(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0) As %SQLQuery
+Query SalesSummary(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0) As %SQLQuery [ SqlProc ]
 {
 SELECT
     SUM(t.AmountOfSale) AS TotalSales,
     SUM(t.UnitsSold) AS UnitsSold
-FROM HoleFoods.Transaction t
+FROM HoleFoods.SalesTransaction t
 WHERE t.Actual = 1
-  AND (:startDate = '' OR t.DateOfSale >= :startDate)
-  AND (:endDate = '' OR t.DateOfSale <= :endDate)
   AND (:outletId = 0 OR t.Outlet = :outletId)
 }
 
 /// Sales totals by SKU with optional filters.
-Query SalesBySku(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0) As %SQLQuery
+Query SalesBySku(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0) As %SQLQuery [ SqlProc ]
 {
 SELECT
     p.SKU AS SKU,
     p.Name AS Name,
     SUM(t.AmountOfSale) AS TotalSales,
     SUM(t.UnitsSold) AS UnitsSold
-FROM HoleFoods.Transaction t
+FROM HoleFoods.SalesTransaction t
 JOIN HoleFoods.Product p ON t.Product = p.%Id
 WHERE t.Actual = 1
-  AND (:startDate = '' OR t.DateOfSale >= :startDate)
-  AND (:endDate = '' OR t.DateOfSale <= :endDate)
   AND (:outletId = 0 OR t.Outlet = :outletId)
 GROUP BY p.SKU, p.Name
 ORDER BY TotalSales DESC
