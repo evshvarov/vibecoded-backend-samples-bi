@@ -8,6 +8,8 @@ Parameter HandleCorsRequest = 1;
 
 Parameter CONTENTTYPE = "application/json";
 
+Parameter ExposeServerExceptions = 1;
+
 XData OpenAPI [ MimeType = application/json ]
 {
 {
@@ -55,10 +57,10 @@ XData OpenAPI [ MimeType = application/json ]
         }
       }
     },
-    "/sales": {
+    "/transactions": {
       "get": {
-        "summary": "Get sales summary",
-        "operationId": "GetSalesSummary",
+        "summary": "List transactions",
+        "operationId": "ListTransactions",
         "parameters": [
           {
             "name": "startDate",
@@ -80,13 +82,22 @@ XData OpenAPI [ MimeType = application/json ]
             "required": false,
             "type": "integer",
             "format": "int32"
+          },
+          {
+            "name": "productSku",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "responses": {
           "200": {
-            "description": "Sales summary",
+            "description": "Transactions",
             "schema": {
-              "$ref": "#/definitions/SalesSummary"
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Transaction"
+              }
             }
           }
         }
@@ -246,47 +257,51 @@ XData OpenAPI [ MimeType = application/json ]
         "City"
       ]
     },
-    "SalesItem": {
+    "Transaction": {
       "type": "object",
       "properties": {
-        "SKU": {
-          "type": "string"
+        "TransactionId": {
+          "type": "integer",
+          "format": "int32"
         },
-        "Name": {
-          "type": "string"
+        "DateOfSale": {
+          "type": "string",
+          "format": "date"
         },
-        "TotalSales": {
+        "Actual": {
+          "type": "boolean"
+        },
+        "AmountOfSale": {
           "type": "number",
           "format": "float"
         },
         "UnitsSold": {
           "type": "integer",
           "format": "int32"
+        },
+        "Discount": {
+          "type": "number",
+          "format": "float"
+        },
+        "ProductSKU": {
+          "type": "string"
+        },
+        "ProductName": {
+          "type": "string"
+        },
+        "OutletId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "OutletCity": {
+          "type": "string"
         }
       },
       "required": [
-        "SKU",
-        "TotalSales"
+        "TransactionId",
+        "DateOfSale",
+        "ProductSKU"
       ]
-    },
-    "SalesSummary": {
-      "type": "object",
-      "properties": {
-        "TotalSales": {
-          "type": "number",
-          "format": "float"
-        },
-        "UnitsSold": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "Items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/SalesItem"
-          }
-        }
-      }
     },
     "Product": {
       "type": "object",

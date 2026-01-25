@@ -27,10 +27,10 @@ Property Actual As %Boolean;
 Property DateOfSale As %Date;
 
 /// Product sold.
-Property Product As Product;
+Property Product As HoleFoods.Product;
 
 /// Store or other outlet in which the sale occurred.
-Property Outlet As Outlet;
+Property Outlet As HoleFoods.Outlet;
 
 /// Channel product was sold through: "Retail" or "Online".
 Property Channel As %String(DISPLAYLIST = ",Retail,Online", VALUELIST = ",1,2");
@@ -67,6 +67,8 @@ SELECT
     SUM(t.UnitsSold) AS UnitsSold
 FROM HoleFoods.SalesTransaction t
 WHERE t.Actual = 1
+  AND (:startDate = '' OR t.DateOfSale >= :startDate)
+  AND (:endDate = '' OR t.DateOfSale <= :endDate)
   AND (:outletId = 0 OR t.Outlet = :outletId)
 }
 
@@ -81,9 +83,35 @@ SELECT
 FROM HoleFoods.SalesTransaction t
 JOIN HoleFoods.Product p ON t.Product = p.%Id
 WHERE t.Actual = 1
+  AND (:startDate = '' OR t.DateOfSale >= :startDate)
+  AND (:endDate = '' OR t.DateOfSale <= :endDate)
   AND (:outletId = 0 OR t.Outlet = :outletId)
 GROUP BY p.SKU, p.Name
 ORDER BY TotalSales DESC
+}
+
+/// List transactions with optional filters.
+Query TransactionsList(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0, productSku As %String = "") As %SQLQuery [ SqlProc ]
+{
+SELECT
+    t.%Id AS TransactionId,
+    t.DateOfSale AS DateOfSale,
+    t.Actual AS Actual,
+    t.AmountOfSale AS AmountOfSale,
+    t.UnitsSold AS UnitsSold,
+    t.Discount AS Discount,
+    p.SKU AS ProductSKU,
+    p.Name AS ProductName,
+    o.%Id AS OutletId,
+    o.City AS OutletCity
+FROM HoleFoods.SalesTransaction t
+JOIN HoleFoods.Product p ON t.Product = p.%Id
+LEFT JOIN HoleFoods.Outlet o ON t.Outlet = o.%Id
+WHERE (:startDate = '' OR t.DateOfSale >= :startDate)
+  AND (:endDate = '' OR t.DateOfSale <= :endDate)
+  AND (:outletId = 0 OR t.Outlet = :outletId)
+  AND (:productSku = '' OR p.SKU = :productSku)
+ORDER BY t.DateOfSale DESC
 }
 
 Storage Default

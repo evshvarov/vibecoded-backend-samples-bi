@@ -36,7 +36,7 @@ ClassMethod IntroduceSQLRole() As %Status
     If SQLCODE '= 0 {
         Quit $$$ERROR($$$GeneralError, "Error granting privileges: "_SQLCODE)
     }
-    &SQL(GRANT SELECT,INSERT,UPDATE,DELETE on HoleFoods.Transaction to holefoods)
+    &SQL(GRANT SELECT,INSERT,UPDATE,DELETE on HoleFoods.SalesTransaction to holefoods)
     If SQLCODE '= 0 {
         Quit $$$ERROR($$$GeneralError, "Error granting privileges: "_SQLCODE)
     }

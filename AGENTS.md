@@ -249,3 +249,13 @@ Query OrdersByCompany(companyId As %String, dateFrom As %String = "", dateTo As 
     ORDER BY o.created_at DESC
     LIMIT :limit OFFSET :offset
 }
+
+
+When you set to an object property - a property that refers another instance make sure the value you set is an instance of the object it refers.
+E.g.
+Set transaction.Product = sku
+should be 
+Set transaction.Product = ##class(HoleFoods.Product).%OpenId(sku)
+as soon as Product property is defined as an object property reffering to HoleFoods.Product:
+Property Product As HoleFoods.Product;
+or refer the variable that contains the OREF for object obtained either with %OpenId() or %New() methods.

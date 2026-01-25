@@ -40,13 +40,18 @@ ClassMethod ListOutlets() As %DynamicObject
     Quit result
 }
 
-/// Get sales summary
-ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", outletId As %String = "") As %DynamicObject
+/// List transactions
+ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "", outletId As %String = "", productSku As %String = "") As %DynamicObject
 {
+    s ^AAA="entered ListTransactions"
+    If '$Data(startDate) Set startDate = ""
+    If '$Data(endDate) Set endDate = ""
+    If '$Data(outletId) Set outletId = ""
+    If '$Data(productSku) Set productSku = ""
     Set startH = ""
     Set endH = ""
     Set outletNum = ""
-    b "L"
+
     If startDate '= "" {
         Set startH = $ZDATEH(startDate, 3)
         If startH < 0 {
@@ -70,7 +75,72 @@ ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", 
             Quit {}
         }
     }
-    //b "L"
+
+    s ^AAA="after outletId check in ListTransactions"
+
+    Set result = []
+    Set stmt = ##class(%SQL.Statement).%New()
+    Set sc = stmt.%PrepareClassQuery("HoleFoods.Transaction", "TransactionsList")
+    If $$$ISERR(sc) {
+        Do ..%SetStatusCode(500)
+        d ..%SetHeader("X-Error", "SQL error: "_$System.Status.GetErrorText(sc))
+        s ^AAA="after prepare error in ListTransactions"_$System.Status.GetErrorText(sc)
+        Quit result
+    }
+    S ^AAA="after prepare in ListTransactions"
+
+    Set rset = stmt.%Execute(startH, endH, outletNum, productSku)
+    While rset.%Next() {
+        Set item = {}
+        Set item.TransactionId = rset.%Get("TransactionId")
+        Set item.DateOfSale = rset.%Get("DateOfSale")
+        Set item.Actual = rset.%Get("Actual")
+        Set item.AmountOfSale = rset.%Get("AmountOfSale")
+        Set item.UnitsSold = rset.%Get("UnitsSold")
+        Set item.Discount = rset.%Get("Discount")
+        Set item.ProductSKU = rset.%Get("ProductSKU")
+        Set item.ProductName = rset.%Get("ProductName")
+        Set item.OutletId = rset.%Get("OutletId")
+        Set item.OutletCity = rset.%Get("OutletCity")
+        Do result.%Push(item)
+    }
+
+    Quit result
+}
+
+/// Get sales summary
+ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", outletId As %String = "") As %DynamicObject
+{
+    If '$Data(startDate) Set startDate = ""
+    If '$Data(endDate) Set endDate = ""
+    If '$Data(outletId) Set outletId = ""
+    Set startH = ""
+    Set endH = ""
+    Set outletNum = ""
+
+    If startDate '= "" {
+        Set startH = $ZDATEH(startDate, 3)
+        If startH < 0 {
+            Do ..%SetStatusCode(400)
+            Quit {}
+        }
+    }
+
+    If endDate '= "" {
+        Set endH = $ZDATEH(endDate, 3)
+        If endH < 0 {
+            Do ..%SetStatusCode(400)
+            Quit {}
+        }
+    }
+
+    If outletId '= "" {
+        Set outletNum = +outletId
+        If outletNum <= 0 {
+            Do ..%SetStatusCode(400)
+            Quit {}
+        }
+    }
     Set summary = {}
     Set totalStmt = ##class(%SQL.Statement).%New()
     Set sc = totalStmt.%PrepareClassQuery("HoleFoods.Transaction", "SalesSummary")

@@ -95,7 +95,7 @@ Method TestListOutlets()
     Do outlet.%Delete()
 }
 
-Method TestGetSalesSummary()
+Method TestListTransactions()
 {
     Do ..InitRequestResponse()
     Set created = ..CreateTempProduct(.sku)
@@ -108,6 +108,7 @@ Method TestGetSalesSummary()
     Do $$$AssertStatusOK(sc, "Outlet save failed")
 
     Set tDate = $Piece($H, ",", 1)
+    Set dateString = $ZDATE(tDate, 3)
     Set transaction = ##class(HoleFoods.Transaction).%New()
     Set transaction.Actual = 1
     Set transaction.DateOfSale = tDate
@@ -117,20 +118,17 @@ Method TestGetSalesSummary()
     Set transaction.UnitsSold = 3
     Set sc = transaction.%Save()
     Do $$$AssertStatusOK(sc, "Transaction save failed")
-    //b "L"
-    Set summary = ##class(HoleFoods.api.impl).GetSalesSummary("", "", outlet.%Id())
-    Do $$$AssertTrue($IsObject(summary), "Summary should be a JSON object")
-    Do $$$AssertEquals(summary.UnitsSold, 3, "Units sold mismatch")
-    Do $$$AssertEquals(summary.TotalSales, 25.75, "Total sales mismatch")
 
     Set found = 0
-    For i = 0:1:summary.Items.%Size()-1 {
-        Set item = summary.Items.%Get(i)
-        If $IsObject(item), item.SKU = sku {
+    Set list = ##class(HoleFoods.api.impl).ListTransactions(dateString, dateString, outlet.%Id(), sku)
+    Do $$$AssertTrue($IsObject(list), "Transactions list should be a JSON array")
+    For i = 0:1:list.%Size()-1 {
+        Set item = list.%Get(i)
+        If $IsObject(item), item.TransactionId = transaction.%Id() {
             Set found = 1
         }
     }
-    Do $$$AssertEquals(found, 1, "Sales item not found")
+    Do $$$AssertEquals(found, 1, "Transaction not found")
 
     Do transaction.%Delete()
     Do outlet.%Delete()
