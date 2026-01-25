@@ -363,7 +363,7 @@ input:focus {
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: minmax(120px, 0.8fr) minmax(160px, 1.4fr) minmax(90px, 0.6fr) minmax(140px, 0.8fr);
+  grid-template-columns: minmax(120px, 0.8fr) minmax(110px, 0.7fr) minmax(160px, 1.4fr) minmax(140px, 1fr) minmax(80px, 0.5fr) minmax(120px, 0.8fr);
   gap: 12px;
   align-items: center;
 }

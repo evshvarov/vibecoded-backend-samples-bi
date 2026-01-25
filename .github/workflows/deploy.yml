@@ -12,6 +12,7 @@ jobs:
     uses: intersystems-community/cloud-deployment/.github/workflows/deployment.yml@main
     with:
       name: holefoods-iris
+      persistence: false
       ## Optional
       # memory: 1Gi
       # port: 8081

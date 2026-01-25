@@ -3,12 +3,12 @@ import {
   createProduct,
   deleteProduct,
   getSpec,
-  getSalesSummary,
   listProducts,
+  listTransactions,
   listOutlets,
   updateProduct,
 } from "./api";
-import type { Outlet, Product, SalesSummary } from "./types";
+import type { Outlet, Product, Transaction } from "./types";
 
 type FormState = {
   SKU: string;
@@ -36,12 +36,13 @@ export default function App() {
   const [specOpen, setSpecOpen] = useState(false);
   const [specJson, setSpecJson] = useState<string>("");
   const [outlets, setOutlets] = useState<Outlet[]>([]);
-  const [sales, setSales] = useState<SalesSummary | null>(null);
-  const [salesLoading, setSalesLoading] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [filters, setFilters] = useState({
     startDate: "",
     endDate: "",
     outletId: "",
+    productSku: "",
   });
 
   const filtered = useMemo(() => {
@@ -65,7 +66,7 @@ export default function App() {
     if (outlets.length === 0) {
       void loadOutlets();
     }
-    void loadSales();
+    void loadTransactions();
   }, [view]);
 
   async function reloadProducts() {
@@ -90,20 +91,23 @@ export default function App() {
     }
   }
 
-  async function loadSales() {
-    setSalesLoading(true);
+  async function loadTransactions() {
+    setTransactionsLoading(true);
     setError(null);
     try {
-      const summary = await getSalesSummary({
+      const data = await listTransactions({
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
         outletId: filters.outletId ? Number(filters.outletId) : undefined,
+        productSku: filters.productSku.trim() || undefined,
       });
-      setSales(summary);
+      setTransactions(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load sales.");
+      setError(
+        err instanceof Error ? err.message : "Unable to load transactions.",
+      );
     } finally {
-      setSalesLoading(false);
+      setTransactionsLoading(false);
     }
   }
 
@@ -200,12 +204,22 @@ export default function App() {
     }
   }
 
+  const totalSales = transactions.reduce(
+    (sum, item) => sum + (item.AmountOfSale ?? 0),
+    0,
+  );
+  const totalUnits = transactions.reduce(
+    (sum, item) => sum + (item.UnitsSold ?? 0),
+    0,
+  );
+  const uniqueSkus = new Set(transactions.map((item) => item.ProductSKU)).size;
+
   const heroStats =
     view === "sales"
       ? [
-          { label: "Total Sales", value: sales?.TotalSales ?? 0 },
-          { label: "Units Sold", value: sales?.UnitsSold ?? 0 },
-          { label: "Filtered SKU Count", value: sales?.Items?.length ?? 0 },
+          { label: "Total Sales", value: totalSales },
+          { label: "Units Sold", value: totalUnits },
+          { label: "Filtered SKU Count", value: uniqueSkus },
         ]
       : [
           { label: "Inventory Items", value: products.length },
@@ -251,8 +265,8 @@ export default function App() {
                 Refresh Products
               </button>
             ) : (
-              <button className="ghost" onClick={loadSales}>
-                Refresh Sales
+              <button className="ghost" onClick={loadTransactions}>
+                Refresh Transactions
               </button>
             )}
           </div>
@@ -393,8 +407,8 @@ export default function App() {
           <section className="panel filters">
             <div className="panel-header">
               <div>
-                <h2>Sales Filters</h2>
-                <p>Apply a date range and outlet to refine the totals.</p>
+                <h2>Transaction Filters</h2>
+                <p>Filter by date range, outlet, and SKU to focus sales.</p>
               </div>
             </div>
             <div className="filters-grid">
@@ -435,7 +449,17 @@ export default function App() {
                   ))}
                 </select>
               </label>
-              <button className="primary" onClick={loadSales}>
+              <label>
+                Product SKU
+                <input
+                  value={filters.productSku}
+                  onChange={(event) =>
+                    setFilters({ ...filters, productSku: event.target.value })
+                  }
+                  placeholder="SKU-101"
+                />
+              </label>
+              <button className="primary" onClick={loadTransactions}>
                 Apply Filters
               </button>
             </div>
@@ -444,31 +468,40 @@ export default function App() {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <h2>Sales by SKU</h2>
-                <p>Ranked by total sales, including units sold.</p>
+                <h2>Transactions</h2>
+                <p>Every matching sale across outlets and SKUs.</p>
               </div>
             </div>
-            {salesLoading ? (
-              <div className="empty">Loading sales summary...</div>
-            ) : sales && sales.Items.length > 0 ? (
+            {transactionsLoading ? (
+              <div className="empty">Loading transactions...</div>
+            ) : transactions.length > 0 ? (
               <div className="table">
                 <div className="table-head">
+                  <span>Date</span>
                   <span>SKU</span>
                   <span>Product</span>
+                  <span>Outlet</span>
                   <span>Units</span>
-                  <span>Total Sales</span>
+                  <span>Amount</span>
                 </div>
-                {sales.Items.map((item) => (
-                  <div className="table-row" key={item.SKU}>
-                    <span className="sku">{item.SKU}</span>
-                    <span>{item.Name || "Unnamed"}</span>
+                {transactions.map((item) => (
+                  <div className="table-row" key={item.TransactionId}>
+                    <span>{item.DateOfSale}</span>
+                    <span className="sku">{item.ProductSKU}</span>
+                    <span>{item.ProductName || "Unnamed"}</span>
+                    <span>{item.OutletCity || "Unknown"}</span>
                     <span>{item.UnitsSold ?? 0}</span>
-                    <span>${item.TotalSales.toFixed(2)}</span>
+                    <span>
+                      $
+                      {item.AmountOfSale !== undefined
+                        ? item.AmountOfSale.toFixed(2)
+                        : "0.00"}
+                    </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="empty">No sales data for this selection.</div>
+              <div className="empty">No transactions for this selection.</div>
             )}
           </section>
         </main>

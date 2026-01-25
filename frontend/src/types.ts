@@ -12,17 +12,17 @@ export type Outlet = {
   Type?: string;
 };
 
-export type SalesItem = {
-  SKU: string;
-  Name?: string;
-  TotalSales: number;
+export type Transaction = {
+  TransactionId: number;
+  DateOfSale: string;
+  Actual?: boolean;
+  AmountOfSale?: number;
   UnitsSold?: number;
-};
-
-export type SalesSummary = {
-  TotalSales: number;
-  UnitsSold: number;
-  Items: SalesItem[];
+  Discount?: number;
+  ProductSKU: string;
+  ProductName?: string;
+  OutletId?: number;
+  OutletCity?: string;
 };
 
 export type ApiError = {

@@ -1,4 +1,4 @@
-import type { Outlet, Product, SalesSummary } from "./types";
+import type { Outlet, Product, Transaction } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/holefoods/api";
 
@@ -58,17 +58,19 @@ export function listOutlets(): Promise<Outlet[]> {
   return request<Outlet[]>("/outlets");
 }
 
-type SalesSummaryParams = {
+type TransactionsParams = {
   startDate?: string;
   endDate?: string;
   outletId?: number;
+  productSku?: string;
 };
 
-export function getSalesSummary(params: SalesSummaryParams): Promise<SalesSummary> {
+export function listTransactions(params: TransactionsParams): Promise<Transaction[]> {
   const query = new URLSearchParams();
   if (params.startDate) query.set("startDate", params.startDate);
   if (params.endDate) query.set("endDate", params.endDate);
   if (params.outletId) query.set("outletId", params.outletId.toString());
+  if (params.productSku) query.set("productSku", params.productSku);
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  return request<SalesSummary>(`/sales${suffix}`);
+  return request<Transaction[]>(`/transactions${suffix}`);
 }
