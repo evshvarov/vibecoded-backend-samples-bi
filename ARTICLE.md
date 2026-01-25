@@ -1,9 +1,11 @@
 # The story how I built this app
-
+## Motivation
 I want to vibecode a backend and frontend for some well-known persistent package in IRIS
-I decided to build the UI for samples BI demo - it has a bunch of persistent classes so I can vibe code the UI and nesessary backend in IRIS for. As soon as it can be installed with IPM, I'd just proceed with:
+I decided to build the UI for [samples BI demo](https://openexchange.intersystems.com/package/samples-bi-demo) - it has a bunch of persistent classes with some data, it is a good example of an IRIS backend with data samples. As soon as it can be installed with IPM, I'd just proceed with:
+```
 zpm "install samples-bi-demo"
-
+```
+## 
 My vibecoding setup includes VS-Code with installed ObjectScript plugins and a Codex plugin from OpenAI, also a template for IRIS as a repo (I used the very basic ObjectScript template from Open Exchange.
 
 So've installed samples-bi-demo and made sure it works smoothly in IRIS BI: here is the screenshot (installed dsw also for better UI):
