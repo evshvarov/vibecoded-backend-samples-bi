@@ -33,10 +33,11 @@ Here is the API i got:
 And you can test it out - here is what I'm getting for /holefoods/api/products GET request:
 
 After testing the UI we can build and connect the frontend to the api. We can ask codex to do it or go to loveble and ask it to build the UI vs the spec. 
-Great!
 
-Here is what I've got locally:
+Here is what I've got locally made by Codex - it suggested Vite+TS React and I agreed :
 Image
+
+The UI can be reached at: http://localhost:5174/
 
 After testing the UI and maybe fixing some potential issues (in my case deletion didn't work) let's introduce another important element - unittests for the API.
 I've just asked Codex to introduce a unittest class HoleFoods.api.Unittests.cls that will cover all the endpoints in spec. And it did.
@@ -45,5 +46,10 @@ zpm "test esh-vibe-back-demo"
 
 and see results in a unit-test portal:
 
+
+I also asked Codex to add /transactions endpoint and build a UI to show some sales on products by years and months. Here is the result:
+
+
+## Conclusion
 
 
