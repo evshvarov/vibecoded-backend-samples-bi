@@ -259,3 +259,11 @@ Set transaction.Product = ##class(HoleFoods.Product).%OpenId(sku)
 as soon as Product property is defined as an object property reffering to HoleFoods.Product:
 Property Product As HoleFoods.Product;
 or refer the variable that contains the OREF for object obtained either with %OpenId() or %New() methods.
+
+When handling errors for REST implementation methods in addition to providing error code, e.g. 500 also set the status code or SQLCode where it makes more sense, e.g.:
+
+If $$$ISERR(sc) {
+        Do ..%SetStatusCode(500)
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
+        Quit result
+    }

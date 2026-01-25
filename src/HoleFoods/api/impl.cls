@@ -23,6 +23,7 @@ ClassMethod ListOutlets() As %DynamicObject
     Set stmt = ##class(%SQL.Statement).%New()
     Set sc = stmt.%Prepare("SELECT o.%Id AS OutletId, o.City, o.Type, c.Name AS Country FROM HoleFoods.Outlet o LEFT JOIN HoleFoods.Country c ON o.Country = c.%Id ORDER BY c.Name, o.City")
     If $$$ISERR(sc) {
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Do ..%SetStatusCode(500)
         Quit result
     }
@@ -83,8 +84,7 @@ ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "",
     Set sc = stmt.%PrepareClassQuery("HoleFoods.Transaction", "TransactionsList")
     If $$$ISERR(sc) {
         Do ..%SetStatusCode(500)
-        d ..%SetHeader("X-Error", "SQL error: "_$System.Status.GetErrorText(sc))
-        s ^AAA="after prepare error in ListTransactions"_$System.Status.GetErrorText(sc)
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Quit result
     }
     S ^AAA="after prepare in ListTransactions"
@@ -145,6 +145,7 @@ ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", 
     Set totalStmt = ##class(%SQL.Statement).%New()
     Set sc = totalStmt.%PrepareClassQuery("HoleFoods.Transaction", "SalesSummary")
     If $$$ISERR(sc) {
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Do ..%SetStatusCode(500)
         Quit {}
     }
@@ -162,6 +163,7 @@ ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", 
     Set stmt = ##class(%SQL.Statement).%New()
     Set sc = stmt.%PrepareClassQuery("HoleFoods.Transaction", "SalesBySku")
     If $$$ISERR(sc) {
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Do ..%SetStatusCode(500)
         Quit {}
     }
@@ -186,6 +188,7 @@ ClassMethod ListProducts() As %DynamicObject
     Set stmt = ##class(%SQL.Statement).%New()
     Set sc = stmt.%Prepare("SELECT SKU, Category, Name, Price FROM HoleFoods.Product")
     If $$$ISERR(sc) {
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Do ..%SetStatusCode(500)
         Quit {}
     }
@@ -221,6 +224,7 @@ ClassMethod CreateProduct(body As %DynamicObject) As %DynamicObject
 
     Set sc = product.%Save()
     If $$$ISERR(sc) {
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Do ..%SetStatusCode(500)
         Quit {}
     }
@@ -276,6 +280,7 @@ ClassMethod UpdateProduct(sku As %String, body As %DynamicObject) As %DynamicObj
 
     Set sc = product.%Save()
     If $$$ISERR(sc) {
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Do ..%SetStatusCode(500)
         Quit {}
     }
@@ -296,6 +301,7 @@ ClassMethod DeleteProduct(sku As %String) As %DynamicObject
 
     Set sc = ##class(HoleFoods.Product).%DeleteId(sku)
     If $$$ISERR(sc) {
+        d ..%SetHeader("X-Error", "Status error: "_$System.Status.GetErrorText(sc))
         Do ..%SetStatusCode(500)
         Quit {}
     }
