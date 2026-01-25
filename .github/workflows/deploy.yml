@@ -9,10 +9,9 @@ on:
 
 jobs:
   deploy:
-    uses: intersystems-community/cloud-deployment/.github/workflows/deployment.yml@main
+    uses: intersystems-community/cloud-deployment/.github/workflows/deployment.yml@optional-env-vars
     with:
       name: holefoods-iris
-      persistence: false
       ## Optional
       # memory: 1Gi
       # port: 8081
