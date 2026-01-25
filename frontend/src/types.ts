@@ -14,11 +14,11 @@ export type Outlet = {
 
 export type Transaction = {
   TransactionId: number;
-  DateOfSale: string;
+  DateOfSale: string | number;
   Actual?: boolean;
-  AmountOfSale?: number;
-  UnitsSold?: number;
-  Discount?: number;
+  AmountOfSale?: number | string;
+  UnitsSold?: number | string;
+  Discount?: number | string;
   ProductSKU: string;
   ProductName?: string;
   OutletId?: number;

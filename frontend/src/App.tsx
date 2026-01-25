@@ -25,7 +25,9 @@ const emptyForm: FormState = {
 };
 
 export default function App() {
-  const [view, setView] = useState<"products" | "sales">("products");
+  const [view, setView] = useState<"products" | "sales" | "sales-year">(
+    "products",
+  );
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,13 @@ export default function App() {
     outletId: "",
     productSku: "",
   });
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [salesSku, setSalesSku] = useState("");
+  const [salesOutletId, setSalesOutletId] = useState("");
+  const [salesTransactions, setSalesTransactions] = useState<Transaction[]>([]);
+  const [salesYears, setSalesYears] = useState<number[]>([]);
+  const [salesSelectedYears, setSalesSelectedYears] = useState<number[]>([]);
+  const [salesLoading, setSalesLoading] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -69,6 +78,16 @@ export default function App() {
     void loadTransactions();
   }, [view]);
 
+  useEffect(() => {
+    if (view !== "sales-year") return;
+    if (outlets.length === 0) {
+      void loadOutlets();
+    }
+    if (productsList.length === 0) {
+      void loadProductsList();
+    }
+  }, [view]);
+
   async function reloadProducts() {
     setLoading(true);
     setError(null);
@@ -79,6 +98,15 @@ export default function App() {
       setError(err instanceof Error ? err.message : "Unable to load products.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadProductsList() {
+    try {
+      const data = await listProducts();
+      setProductsList(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load products.");
     }
   }
 
@@ -108,6 +136,71 @@ export default function App() {
       );
     } finally {
       setTransactionsLoading(false);
+    }
+  }
+
+  function getYearFromDateValue(value: string | number | undefined) {
+    if (value === undefined || value === null) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    if (/^\d+$/.test(raw)) {
+      const days = Number(raw);
+      if (Number.isNaN(days)) return null;
+      const base = new Date(Date.UTC(1840, 11, 31));
+      const date = new Date(base.getTime() + days * 86400000);
+      return date.getUTCFullYear();
+    }
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.getFullYear();
+  }
+
+  function getMonthFromDateValue(value: string | number | undefined) {
+    if (value === undefined || value === null) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    if (/^\d+$/.test(raw)) {
+      const days = Number(raw);
+      if (Number.isNaN(days)) return null;
+      const base = new Date(Date.UTC(1840, 11, 31));
+      const date = new Date(base.getTime() + days * 86400000);
+      return date.getUTCMonth();
+    }
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.getMonth();
+  }
+
+  async function loadSalesByYear() {
+    if (!salesSku.trim()) {
+      setError("Select a SKU to view sales by year.");
+      return;
+    }
+    setSalesLoading(true);
+    setError(null);
+    try {
+      const data = await listTransactions({
+        outletId: salesOutletId ? Number(salesOutletId) : undefined,
+        productSku: salesSku.trim(),
+      });
+      setSalesTransactions(data);
+      const years = Array.from(
+        new Set(
+          data
+            .map((item) => getYearFromDateValue(item.DateOfSale))
+            .filter((year): year is number => year !== null),
+        ),
+      ).sort((a, b) => a - b);
+      setSalesYears(years);
+      if (salesSelectedYears.length === 0) {
+        setSalesSelectedYears(years);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to load sales data.",
+      );
+    } finally {
+      setSalesLoading(false);
     }
   }
 
@@ -205,11 +298,11 @@ export default function App() {
   }
 
   const totalSales = transactions.reduce(
-    (sum, item) => sum + (item.AmountOfSale ?? 0),
+    (sum, item) => sum + (Number(item.AmountOfSale) || 0),
     0,
   );
   const totalUnits = transactions.reduce(
-    (sum, item) => sum + (item.UnitsSold ?? 0),
+    (sum, item) => sum + (Number(item.UnitsSold) || 0),
     0,
   );
   const uniqueSkus = new Set(transactions.map((item) => item.ProductSKU)).size;
@@ -220,6 +313,12 @@ export default function App() {
           { label: "Total Sales", value: totalSales },
           { label: "Units Sold", value: totalUnits },
           { label: "Filtered SKU Count", value: uniqueSkus },
+        ]
+      : view === "sales-year"
+      ? [
+          { label: "Selected SKU", value: salesSku || "None" },
+          { label: "Years Loaded", value: salesYears.length },
+          { label: "Transactions", value: salesTransactions.length },
         ]
       : [
           { label: "Inventory Items", value: products.length },
@@ -255,6 +354,12 @@ export default function App() {
             >
               Sales
             </button>
+            <button
+              className={view === "sales-year" ? "tab active" : "tab"}
+              onClick={() => setView("sales-year")}
+            >
+              Sales by Year
+            </button>
           </div>
           <div className="hero-actions">
             <button className="primary" onClick={handleLoadSpec}>
@@ -264,9 +369,13 @@ export default function App() {
               <button className="ghost" onClick={reloadProducts}>
                 Refresh Products
               </button>
-            ) : (
+            ) : view === "sales" ? (
               <button className="ghost" onClick={loadTransactions}>
                 Refresh Transactions
+              </button>
+            ) : (
+              <button className="ghost" onClick={loadSalesByYear}>
+                Refresh Sales
               </button>
             )}
           </div>
@@ -402,7 +511,7 @@ export default function App() {
             )}
           </section>
         </main>
-      ) : (
+      ) : view === "sales" ? (
         <main className="sales-grid">
           <section className="panel filters">
             <div className="panel-header">
@@ -490,12 +599,10 @@ export default function App() {
                     <span className="sku">{item.ProductSKU}</span>
                     <span>{item.ProductName || "Unnamed"}</span>
                     <span>{item.OutletCity || "Unknown"}</span>
-                    <span>{item.UnitsSold ?? 0}</span>
+                    <span>{Number(item.UnitsSold) || 0}</span>
                     <span>
                       $
-                      {item.AmountOfSale !== undefined
-                        ? item.AmountOfSale.toFixed(2)
-                        : "0.00"}
+                      {(Number(item.AmountOfSale) || 0).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -503,6 +610,206 @@ export default function App() {
             ) : (
               <div className="empty">No transactions for this selection.</div>
             )}
+          </section>
+        </main>
+      ) : (
+        <main className="sales-grid">
+          <section className="panel filters">
+            <div className="panel-header">
+              <div>
+                <h2>SKU Sales Filters</h2>
+                <p>Pick a SKU, outlet, and years to chart totals.</p>
+              </div>
+            </div>
+            <div className="filters-grid">
+              <label>
+                Product SKU
+                <select
+                  value={salesSku}
+                  onChange={(event) => setSalesSku(event.target.value)}
+                >
+                  <option value="">Select SKU</option>
+                  {productsList.map((product) => (
+                    <option key={product.SKU} value={product.SKU}>
+                      {product.SKU} - {product.Name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Outlet
+                <select
+                  value={salesOutletId}
+                  onChange={(event) => setSalesOutletId(event.target.value)}
+                >
+                  <option value="">All outlets</option>
+                  {outlets.map((outlet) => (
+                    <option key={outlet.OutletId} value={outlet.OutletId}>
+                      {outlet.City}
+                      {outlet.Country ? `, ${outlet.Country}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="filters-actions">
+                <button className="primary" onClick={loadSalesByYear}>
+                  Load Sales
+                </button>
+              </div>
+            </div>
+            <div className="year-filter">
+              {salesYears.length === 0 ? (
+                <p className="empty">Select a SKU to load available years.</p>
+              ) : (
+                salesYears.map((year) => (
+                  <label key={year} className="year-pill">
+                    <input
+                      type="checkbox"
+                      checked={salesSelectedYears.includes(year)}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setSalesSelectedYears((prev) => [...prev, year]);
+                        } else {
+                          setSalesSelectedYears((prev) =>
+                            prev.filter((value) => value !== year),
+                          );
+                        }
+                      }}
+                    />
+                    <span>{year}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </section>
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Sales by Year</h2>
+                <p>Totals for the selected SKU across chosen years.</p>
+              </div>
+            </div>
+            {salesLoading ? (
+              <div className="empty">Loading sales by year...</div>
+            ) : salesTransactions.length === 0 ? (
+              <div className="empty">No transactions loaded yet.</div>
+            ) : (() => {
+                const totals = salesTransactions.reduce((acc, item) => {
+                  const year = getYearFromDateValue(item.DateOfSale);
+                  if (year === null) return acc;
+                  if (!salesSelectedYears.includes(year)) return acc;
+                  const next = acc.get(year) || {
+                    total: 0,
+                    units: 0,
+                    count: 0,
+                  };
+                  next.total += Number(item.AmountOfSale) || 0;
+                  next.units += Number(item.UnitsSold) || 0;
+                  next.count += 1;
+                  acc.set(year, next);
+                  return acc;
+                }, new Map<number, { total: number; units: number; count: number }>());
+                const rows = Array.from(totals.entries()).sort(
+                  (a, b) => b[0] - a[0],
+                );
+                const maxTotal = rows.reduce(
+                  (max, [, data]) => Math.max(max, data.total),
+                  0,
+                );
+                return rows.length === 0 ? (
+                  <div className="empty">No data for the selected years.</div>
+                ) : (
+                  <div className="year-table">
+                    {rows.map(([year, data]) => (
+                      <div className="year-row" key={year}>
+                        <div>
+                          <p className="year-label">{year}</p>
+                          <p className="year-meta">
+                            {data.count} transactions · {data.units} units
+                          </p>
+                        </div>
+                        <div className="year-bar">
+                          <span
+                            style={{
+                              width: maxTotal
+                                ? `${(data.total / maxTotal) * 100}%`
+                                : "0%",
+                            }}
+                          />
+                        </div>
+                        <strong>${data.total.toFixed(2)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+          </section>
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Monthly Sales</h2>
+                <p>Distribution for the selected SKU across chosen years.</p>
+              </div>
+            </div>
+            {salesLoading ? (
+              <div className="empty">Loading monthly sales...</div>
+            ) : salesTransactions.length === 0 ? (
+              <div className="empty">No transactions loaded yet.</div>
+            ) : (() => {
+                const months = new Array(12)
+                  .fill(0)
+                  .map(() => ({ total: 0, units: 0 }));
+                salesTransactions.forEach((item) => {
+                  const year = getYearFromDateValue(item.DateOfSale);
+                  if (year === null) return;
+                  if (salesSelectedYears.length > 0) {
+                    if (!salesSelectedYears.includes(year)) return;
+                  }
+                  const month = getMonthFromDateValue(item.DateOfSale);
+                  if (month === null) return;
+                  months[month].total += Number(item.AmountOfSale) || 0;
+                  months[month].units += Number(item.UnitsSold) || 0;
+                });
+                const maxTotal = months.reduce(
+                  (max, entry) => Math.max(max, entry.total),
+                  0,
+                );
+                const labels = [
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec",
+                ];
+                return (
+                  <div className="month-chart">
+                    {months.map((entry, index) => (
+                      <div className="month-bar" key={labels[index]}>
+                        <div className="month-bar-inner">
+                          <span
+                            style={{
+                              height: maxTotal
+                                ? `${(entry.total / maxTotal) * 100}%`
+                                : "0%",
+                            }}
+                          />
+                        </div>
+                        <p>{labels[index]}</p>
+                        <small>
+                          ${entry.total.toFixed(2)} · {entry.units} units
+                        </small>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
           </section>
         </main>
       )}

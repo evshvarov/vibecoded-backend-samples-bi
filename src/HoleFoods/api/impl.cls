@@ -49,8 +49,9 @@ ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "",
     If '$Data(endDate) Set endDate = ""
     If '$Data(outletId) Set outletId = ""
     If '$Data(productSku) Set productSku = ""
+    Set productSku = $ZStrip(productSku, "<>W")
     Set startH = 0
-    Set endH = $H
+    Set endH = $Piece($H, ",", 1)
     Set outletNum = 0
 
     If startDate '= "" {
@@ -100,7 +101,7 @@ ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "",
     While rset.%Next() {
         Set item = {}
         Set item.TransactionId = rset.%Get("TransactionId")
-        Set item.DateOfSale = rset.%Get("DateOfSale")
+        Set item.DateOfSale = $ZDT(rset.%Get("DateOfSale"),3)
         Set item.Actual = rset.%Get("Actual")
         Set item.AmountOfSale = rset.%Get("AmountOfSale")
         Set item.UnitsSold = rset.%Get("UnitsSold")
@@ -112,6 +113,7 @@ ClassMethod ListTransactions(startDate As %String = "", endDate As %String = "",
         Do result.%Push(item)
     }
 
+   
     Quit result
 }
 
@@ -121,9 +123,9 @@ ClassMethod GetSalesSummary(startDate As %String = "", endDate As %String = "", 
     If '$Data(startDate) Set startDate = ""
     If '$Data(endDate) Set endDate = ""
     If '$Data(outletId) Set outletId = ""
-    Set startH = ""
-    Set endH = ""
-    Set outletNum = ""
+    Set startH = 0
+    Set endH = $Piece($H, ",", 1)
+    Set outletNum = 0
 
     If startDate '= "" {
         Set startH = $ZDATEH(startDate, 3)

@@ -7,7 +7,7 @@
 /// Budget records will have a false value for the Actual property. The budget value will
 /// be stored in the TargetAmount property. Budget values are set for each city, product, and
 /// month (using the first day of the month).
-Class HoleFoods.Transaction Extends %Persistent [ SqlTableName = SalesTransaction ]
+Class HoleFoods.Transaction Extends (%Persistent, %JSON.Adaptor) [ SqlTableName = SalesTransaction ]
 {
 
 /// Track changes to this class.
@@ -60,20 +60,20 @@ Property Latitude As %Double;
 Property Longitude As %Double;
 
 /// Total sales and units sold with optional filters.
-Query SalesSummary(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0) As %SQLQuery [ SqlProc ]
+Query SalesSummary(startDate As %Date = 0, endDate As %Date = 0, outletId As %Integer = 0) As %SQLQuery [ SqlProc ]
 {
 SELECT
     SUM(t.AmountOfSale) AS TotalSales,
     SUM(t.UnitsSold) AS UnitsSold
 FROM HoleFoods.SalesTransaction t
 WHERE t.Actual = 1
-  AND (:startDate = '' OR t.DateOfSale >= :startDate)
-  AND (:endDate = '' OR t.DateOfSale <= :endDate)
+  AND (:startDate = 0 OR t.DateOfSale >= :startDate)
+  AND (:endDate = 0 OR t.DateOfSale <= :endDate)
   AND (:outletId = 0 OR t.Outlet = :outletId)
 }
 
 /// Sales totals by SKU with optional filters.
-Query SalesBySku(startDate As %Date = "", endDate As %Date = "", outletId As %Integer = 0) As %SQLQuery [ SqlProc ]
+Query SalesBySku(startDate As %Date = 0, endDate As %Date = 0, outletId As %Integer = 0) As %SQLQuery [ SqlProc ]
 {
 SELECT
     p.SKU AS SKU,
@@ -83,15 +83,15 @@ SELECT
 FROM HoleFoods.SalesTransaction t
 JOIN HoleFoods.Product p ON t.Product = p.%Id
 WHERE t.Actual = 1
-  AND (:startDate = '' OR t.DateOfSale >= :startDate)
-  AND (:endDate = '' OR t.DateOfSale <= :endDate)
+  AND (:startDate = 0 OR t.DateOfSale >= :startDate)
+  AND (:endDate = 0 OR t.DateOfSale <= :endDate)
   AND (:outletId = 0 OR t.Outlet = :outletId)
 GROUP BY p.SKU, p.Name
 ORDER BY TotalSales DESC
 }
 
 /// List transactions with optional filters.
-Query TransactionsList(startDate As %Date, endDate As %Date, outletId As %Integer = 0, productSku As %String = "") As %SQLQuery [ SqlProc ]
+Query TransactionsList(startDate As %Date = 0, endDate As %Date = 0, outletId As %Integer = 0, productSku As %String = "") As %SQLQuery [ SqlProc ]
 {
 SELECT
     t.%Id AS TransactionId,
@@ -107,8 +107,8 @@ SELECT
 FROM HoleFoods.SalesTransaction t
 JOIN HoleFoods.Product p ON t.Product = p.%Id
 LEFT JOIN HoleFoods.Outlet o ON t.Outlet = o.%Id
-WHERE (:startDate = '' OR CAST(t.DateOfSale AS timestamp) >= :startDate)
-  AND (:endDate = '' OR CAST(t.DateOfSale AS timestamp) <= :endDate)
+WHERE (:startDate = 0 OR t.DateOfSale >= :startDate)
+  AND (:endDate = 0 OR t.DateOfSale <= :endDate)
   AND (:outletId = 0 OR t.Outlet = :outletId)
   AND (:productSku = '' OR p.SKU = :productSku)
 ORDER BY t.DateOfSale DESC
